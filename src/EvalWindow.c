@@ -38,41 +38,46 @@ static void Calculate(GtkWidget *Widget, gpointer EvalWindow)
 		gtk_editable_get_text(
 		GTK_EDITABLE(
 		gtk_builder_get_object(GTK_BUILDER(EvalWindow), "Input")))));
-	struct SilikoValue Value = SilikoSyntaxTreeEvaluate(ResultTree, caller);
+	SilikoValue *result = SilikoSyntaxTreeEvaluate(ResultTree, caller);
 	SilikoSyntaxTreeDelete(ResultTree);
 
 	gchar *ResultString = NULL;
-	switch (Value.Status)
+	switch (SilikoValueGetStatus(result))
 	{
-	case (SILIKO_VAL_INTEGER):
-		ResultString = g_strdup_printf("%lli", Value.Integer);
+	case SilikoValueInteger:
+		ResultString = g_strdup_printf("%lli", SilikoValueToInteger(result));
 		break;
-	case (SILIKO_VAL_FLOAT):
-		ResultString = g_strdup_printf("%f", Value.Float);
+	case SilikoValueReal:
+		ResultString = g_strdup_printf("%f", SilikoValueToReal(result));
 		break;
-	case(SILIKO_VAL_MEMORY_ERR):
-		ResultString = g_strdup("Memory error");
-		break;
-	case SILIKO_VAL_SYNTAX_ERR:
-		ResultString = g_strdup("Syntax error");
-		break;
-	case SILIKO_VAL_ZERO_DIV_ERR:
-		ResultString = g_strdup("Division by zero");
-		break;
-	case SILIKO_VAL_BAD_FUNCTION:
-		ResultString = g_strdup("Function not found");
-		break;
-	case SILIKO_VAL_BAD_ARGUMENTS:
-		ResultString = g_strdup("Bad argument count");
-		break;
-	case SILIKO_VAL_DOMAIN_ERR:
-		ResultString = g_strdup("Domain error");
-		break;
-	case SILIKO_VAL_RANGE_ERR:
-		ResultString = g_strdup("Range error");
-		break;
-	default:
-		ResultString = g_strdup("Unexpected error");
+	case SilikoValueError:
+		switch (SilikoValueToError(result))
+		{
+		case SilikoErrorMemory:
+			ResultString = g_strdup("Memory error");
+			break;
+		case SilikoErrorSyntax:
+			ResultString = g_strdup("Syntax error");
+			break;
+		case SilikoErrorZeroDivision:
+			ResultString = g_strdup("Division by zero");
+			break;
+		case SilikoErrorFunctionName:
+			ResultString = g_strdup("Function not found");
+			break;
+		case SilikoErrorFunctionArguments:
+			ResultString = g_strdup("Bad argument count");
+			break;
+		case SilikoErrorDomain:
+			ResultString = g_strdup("Domain error");
+			break;
+		case SilikoErrorRange:
+			ResultString = g_strdup("Range error");
+			break;
+		default:
+			ResultString = g_strdup("Unexpected error");
+			break;
+		}
 	}
 
 	gtk_label_set_text(
@@ -81,6 +86,7 @@ static void Calculate(GtkWidget *Widget, gpointer EvalWindow)
 			GTK_BUILDER(EvalWindow), "Output")),
 		ResultString);
 	g_free(ResultString);
+	SilikoValueDelete(result);
 }
 
 static gboolean Cleanup(GtkWidget *Widget, gpointer EvalWindow)
